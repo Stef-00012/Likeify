@@ -106,7 +106,11 @@ app.all("*", (req, res) => {
 	return res.sendStatus(404);
 });
 
-app.listen(config.web?.port || 3000);
+app.listen(config.web?.port || 3000, () => {
+	infoLog(
+		`Webserver is running on ${config.spotify.baseUrl} (port ${config.web.port})`,
+	);
+});
 
 async function createPlaylist(name, description, accessToken, refreshToken) {
 	infoLog("Creating liked songs playlist...");
@@ -613,7 +617,7 @@ async function getUserToken(code, logout = false) {
 
 	const tokenData = new URLSearchParams({
 		code,
-		redirect_uri: `${config.spotify.baseUrl}/${logout ? 'logout' : 'login'}`,
+		redirect_uri: `${config.spotify.baseUrl}/${logout ? "logout" : "login"}`,
 		grant_type: "authorization_code",
 	});
 
