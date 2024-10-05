@@ -1,6 +1,7 @@
 # Likeify
 
-Likeify is a script that runs every 30 minutes (can be configured) and creates (or modified if it was already created earlier by the script) a playlist with your Spotify liked songs so you can have them public.
+Likeify is a script that runs every 30 minutes (can be configured) and creates (or modified if it was already created earlier by the script) a playlist with your Spotify liked songs so you can have them public.<br />
+User access tokens and refresh tokens are stored locally in a `.db` file.
 
 ## How to Run?
 
