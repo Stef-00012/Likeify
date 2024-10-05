@@ -29,6 +29,9 @@ then visit `http://localhost:3000/login` (or the domain/port that you use) and l
     - `clientSecret` (String): Your Spotify application client secret.
     - `scopes` (String): Your Spotify application scopes (for the app to run is enough `user-library-read playlist-modify-public`).
     - `baseUrl` (String): Base URL used for login and logout (they'be `<baseUrl>/login` and `<baseUrl>/logout`, **you need to add those 2 as "Redirect URIs" in the Spotify application settings**).
+    - `defaults` (Object):
+        - `playlistName` (String): Default playlist name to use when creating the liked songs playlist.
+        - `playlistDescription` (String): Default playlist description to use when creating the liked songs playlist.
 - `web` (Object):
     - `port` (Number): The port used for the webserver, required for the Spotify OAuth2.
 - `refreshInterval` (Number): How often update the liked songs playlist (in milliseconds), defaults to 30 minutes.

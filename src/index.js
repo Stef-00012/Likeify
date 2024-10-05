@@ -9,6 +9,8 @@ const axios = require("axios");
 const clientSecret = config.spotify.clientSecret;
 const clientId = config.spotify.clientId;
 
+infoLog(`Refresh interval is set to ${config.refreshInterval}ms`);
+
 setInterval(syncData, config.refreshInterval);
 
 (async () => {
@@ -85,7 +87,7 @@ app.get("/logout", async (req, res) => {
 		return res.redirect(spotifyAuthUrl);
 	}
 
-	const tokenData = await getUserToken(code);
+	const tokenData = await getUserToken(code, true);
 
 	if (!tokenData) return res.sendStatus(404);
 
@@ -606,12 +608,12 @@ function generateRandomString(length) {
 	return text;
 }
 
-async function getUserToken(code) {
+async function getUserToken(code, logout = false) {
 	infoLog("Fetching user token...");
 
 	const tokenData = new URLSearchParams({
 		code,
-		redirect_uri: `${config.spotify.baseUrl}/login`,
+		redirect_uri: `${config.spotify.baseUrl}/${logout ? 'logout' : 'login'}`,
 		grant_type: "authorization_code",
 	});
 
@@ -645,6 +647,8 @@ async function syncData() {
 	const users = (await db.query.users.findMany()) || [];
 
 	let completedUsers = 0;
+
+	if (!users || users.length <= 0) return infoLog("No users to sync");
 
 	for (const user of users) {
 		infoLog(`Starting sync for user "${user.id}"...`);
@@ -691,8 +695,9 @@ async function syncData() {
 			);
 
 			user.playlistId = await createPlaylist(
-				"Liked Songs",
-				"Managed by https://liked.spotify.stefdp.lol.",
+				config.spotify.defaults.playlistName || "Liked Songs",
+				config.spotify.defaults.playlistDescription ||
+					"Managed by https://liked.spotify.stefdp.lol.",
 				user.accessToken,
 				user.refreshToken,
 			);
@@ -705,26 +710,27 @@ async function syncData() {
 			user.refreshToken,
 		);
 
-		infoLog("Fetching playlist info...");
-		const playlistData = await getPlaylistData(
-			user.playlistId,
-			user.accessToken,
-			user.refreshToken,
-		);
-
 		if (!existsUserPlaylist) {
 			infoLog(
 				"User does not follow the liked songs playlist, creating a new one...",
 			);
 
 			user.playlistId = await createPlaylist(
-				playlistData?.name || "Liked Songs",
-				playlistData?.description ||
-					"Managed by https://liked.spotify.stefdp.lol.",
+				config.spotify.defaults.playlistName || "Liked Songs",
+				config.spotify.defaults.playlistDescription ||
+					"Managed by https://github.com/Stef-00012/Likeify",
 				user.accessToken,
 				user.refreshToken,
 			);
 		} else {
+			infoLog("Fetching playlist info...");
+
+			const playlistData = await getPlaylistData(
+				user.playlistId,
+				user.accessToken,
+				user.refreshToken,
+			);
+
 			infoLog("Emptying liked song playlist...");
 
 			const success = await emptyPlaylist(
@@ -746,9 +752,12 @@ async function syncData() {
 				infoLog("Creating a new liked songs playlist...");
 
 				user.playlistId = await createPlaylist(
-					playlistData?.name || "Liked Songs",
+					playlistData?.name ||
+						config.spotify.defaults.playlistName ||
+						"Liked Songs",
 					playlistData?.description ||
-						"Managed by https://liked.spotify.stefdp.lol.",
+						config.spotify.defaults.playlistDescription ||
+						"Managed by https://github.com/Stef-00012/Likeify",
 					user.accessToken,
 					user.refreshToken,
 				);
