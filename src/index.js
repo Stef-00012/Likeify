@@ -112,7 +112,7 @@ app.listen(config.web?.port || 3000, () => {
 	);
 });
 
-async function createPlaylist(name, description, accessToken, refreshToken) {
+async function createPlaylist(name, description, accessToken) {
 	infoLog("Creating liked songs playlist...");
 
 	const playlistEndpoint = "https://api.spotify.com/v1/me/playlists";
@@ -145,31 +145,13 @@ async function createPlaylist(name, description, accessToken, refreshToken) {
 
 		return data.id;
 	} catch (e) {
-		if (e?.response?.status === 401 && refreshToken) {
-			try {
-				const refreshedData = await refreshUserToken(refreshToken);
-
-				return await createPlaylist(
-					name,
-					description,
-					refreshedData.access_token,
-				);
-			} catch (e) {
-				errorLog(
-					"Something went wrong while creating the liked songs playlist...",
-				);
-
-				errorLog(e?.response?.data || e);
-			}
-		}
-
 		errorLog("Something went wrong while creating the liked songs playlist...");
 
 		errorLog(e?.response?.data || e);
 	}
 }
 
-async function emptyPlaylist(playlistId, songs, accessToken, refreshToken) {
+async function emptyPlaylist(playlistId, songs, accessToken) {
 	infoLog("Removing the old liked songs form the liked songs playlist...");
 
 	const deletePlaylistSongsEndpoint = `https://api.spotify.com/v1/playlists/${playlistId}/tracks`;
@@ -206,7 +188,7 @@ async function emptyPlaylist(playlistId, songs, accessToken, refreshToken) {
 				`Removed ${batch.length} other songs, total removed = ${count} | total songs = ${songs.length}`,
 			);
 		} catch (e) {
-			if (e?.response?.status === 401 && refreshToken) {
+			if (e?.response?.status === 401) {
 				errorLog(
 					"Something went wrong while removing the liked songs to the liked songs playlist [Unauthorized]...",
 				);
@@ -227,7 +209,7 @@ async function emptyPlaylist(playlistId, songs, accessToken, refreshToken) {
 	return batchJobs.every(Boolean);
 }
 
-async function fillPlaylist(playlistId, songs, accessToken, refreshToken) {
+async function fillPlaylist(playlistId, songs, accessToken) {
 	infoLog("Adding the liked songs to the liked songs playlist...");
 
 	const addPlaylistSongsEndpoint = `https://api.spotify.com/v1/playlists/${playlistId}/tracks`;
@@ -264,7 +246,7 @@ async function fillPlaylist(playlistId, songs, accessToken, refreshToken) {
 				`Added ${batch.length} new songs, total added = ${count} | total songs = ${songs.length}`,
 			);
 		} catch (e) {
-			if (e?.response?.status === 401 && refreshToken) {
+			if (e?.response?.status === 401) {
 				errorLog(
 					"Something went wrong while adding the liked songs to the liked songs playlist [Unauthorized]...",
 				);
@@ -285,7 +267,7 @@ async function fillPlaylist(playlistId, songs, accessToken, refreshToken) {
 	return batchJobs.every(Boolean);
 }
 
-async function getPlaylistData(playlistId, accessToken, refreshToken) {
+async function getPlaylistData(playlistId, accessToken) {
 	infoLog("Fetching liked songs playlist data...");
 
 	const playlistEndpoint = `https://api.spotify.com/v1/playlists/${playlistId}`;
@@ -308,20 +290,6 @@ async function getPlaylistData(playlistId, accessToken, refreshToken) {
 
 		return playlistData;
 	} catch (e) {
-		if (e?.response?.status === 401 && refreshToken) {
-			try {
-				const refreshedData = await refreshUserToken(refreshToken);
-
-				return await getPlaylistData(playlistId, refreshedData.access_token);
-			} catch (e) {
-				errorLog(
-					"Something went wrong while fetching the liked songs playlist data...",
-				);
-
-				errorLog(e?.response?.data || e);
-			}
-		}
-
 		errorLog(
 			"Something went wrong while fetching the liked songs playlist data...",
 		);
@@ -330,7 +298,7 @@ async function getPlaylistData(playlistId, accessToken, refreshToken) {
 	}
 }
 
-async function existsPlaylist(playlistId, accessToken, refreshToken) {
+async function existsPlaylist(playlistId, accessToken) {
 	infoLog("Checking if user has deleted the liked songs playlist...");
 
 	const playlistFollowEndpoint = `https://api.spotify.com/v1/playlists/${playlistId}/followers/contains`;
@@ -350,20 +318,6 @@ async function existsPlaylist(playlistId, accessToken, refreshToken) {
 
 		return isDeleted;
 	} catch (e) {
-		if (e?.response?.status === 401 && refreshToken) {
-			try {
-				const refreshedData = await refreshUserToken(refreshToken);
-
-				return await existsPlaylist(playlistId, refreshedData.access_token);
-			} catch (e) {
-				errorLog(
-					"Something went wrong while checking if the user has deleted the liked songs playlist...",
-				);
-
-				errorLog(e?.response?.data || e);
-			}
-		}
-
 		errorLog(
 			"Something went wrong while checking if the user has deleted the liked songs playlist...",
 		);
@@ -372,7 +326,7 @@ async function existsPlaylist(playlistId, accessToken, refreshToken) {
 	}
 }
 
-async function deletePlaylist(playlistId, accessToken, refreshToken) {
+async function deletePlaylist(playlistId, accessToken) {
 	infoLog("Unfollowing old liked songs playlist...");
 
 	const unfollowPlaylistEndpoint = `https://api.spotify.com/v1/playlists/${playlistId}/followers`;
@@ -386,20 +340,6 @@ async function deletePlaylist(playlistId, accessToken, refreshToken) {
 
 		infoLog("Successfully unfollowed old liked songs playlist");
 	} catch (e) {
-		if (e?.response?.status === 401 && refreshToken) {
-			try {
-				const refreshedData = await refreshUserToken(refreshToken);
-
-				return await deletePlaylist(playlistId, refreshedData.access_token);
-			} catch (e) {
-				errorLog(
-					"Something went wrong while unfollowing the liked songs playlist...",
-				);
-
-				errorLog(e?.response?.data || e);
-			}
-		}
-
 		errorLog(
 			"Something went wrong while unfollowing the liked songs playlist...",
 		);
@@ -408,7 +348,7 @@ async function deletePlaylist(playlistId, accessToken, refreshToken) {
 	}
 }
 
-async function getLikedSongs(accessToken, refreshToken) {
+async function getLikedSongs(accessToken) {
 	infoLog("Fetching current user liked songs...");
 
 	const allSongs = [];
@@ -442,69 +382,9 @@ async function getLikedSongs(accessToken, refreshToken) {
 
 		return allSongs;
 	} catch (e) {
-		if (e?.response?.status === 401 && refreshToken) {
-			try {
-				const refreshedData = await refreshUserToken(refreshToken);
-
-				return await getLikedSongs(refreshedData.access_token);
-			} catch (e) {
-				errorLog(
-					"Something went wrong while fetching current user liked songs...",
-				);
-
-				errorLog(e?.response?.data || e);
-			}
-		}
-
 		errorLog("Something went wrong while fetching current user liked songs...");
 
 		errorLog(e?.response?.data || e);
-	}
-}
-
-async function validateToken(accessToken, refreshToken) {
-	infoLog("Checking is the token is valid...");
-
-	const userEndpoint = "https://api.spotify.com/v1/me";
-
-	try {
-		const res = await axios.get(userEndpoint, {
-			headers: {
-				Authorization: `Bearer ${accessToken}`,
-			},
-		});
-
-		const data = res.data;
-
-		infoLog("Token is valid", data);
-
-		return true;
-	} catch (e) {
-		if (e?.response?.status === 401 && refreshToken) {
-			try {
-				const refreshedData = await refreshUserToken(refreshToken);
-
-				if (!refreshedData) {
-					infoLog("Token is not valid, removing the user...");
-
-					return false;
-				}
-
-				return await getUser(refreshedData.access_token);
-			} catch (e) {
-				errorLog("Something went wrong while fetching the current user...");
-
-				errorLog(e?.response?.data || e);
-
-				return false;
-			}
-		}
-
-		errorLog("Something went wrong while fetching the current user...");
-
-		errorLog(e?.response?.data || e);
-
-		return false;
 	}
 }
 
@@ -593,6 +473,8 @@ async function refreshUserToken(refreshToken) {
 		errorLog("Something went wrong while refreshing the current user token...");
 
 		errorLog(e?.response?.data || e);
+
+		return null;
 	}
 }
 
@@ -657,12 +539,9 @@ async function syncData() {
 	for (const user of users) {
 		infoLog(`Starting sync for user "${user.id}"...`);
 
-		const isTokenValid = await validateToken(
-			user.accessToken,
-			user.refreshToken,
-		);
+		const refreshedTokenData = await refreshUserToken(user.refreshToken)
 
-		if (!isTokenValid) {
+		if (!refreshedTokenData) {
 			warnLog("Skipping user...");
 
 			completedUsers++;
@@ -677,7 +556,7 @@ async function syncData() {
 		}
 
 		infoLog("Fetching liked songs...");
-		const likedSongs = await getLikedSongs(user.accessToken, user.refreshToken);
+		const likedSongs = await getLikedSongs(refreshedTokenData.access_token);
 
 		if (!likedSongs) {
 			warnLog("likedSongs is missing, skipping user...");
@@ -702,16 +581,14 @@ async function syncData() {
 				config.spotify.defaults.playlistName || "Liked Songs",
 				config.spotify.defaults.playlistDescription ||
 					"Managed by https://liked.spotify.stefdp.lol.",
-				user.accessToken,
-				user.refreshToken,
+				refreshedTokenData.access_token,
 			);
 		}
 
 		infoLog("Checking if playlist exists...");
 		const existsUserPlaylist = await existsPlaylist(
 			user.playlistId,
-			user.accessToken,
-			user.refreshToken,
+			refreshedTokenData.access_token
 		);
 
 		if (!existsUserPlaylist) {
@@ -723,16 +600,14 @@ async function syncData() {
 				config.spotify.defaults.playlistName || "Liked Songs",
 				config.spotify.defaults.playlistDescription ||
 					"Managed by https://github.com/Stef-00012/Likeify",
-				user.accessToken,
-				user.refreshToken,
+				refreshedTokenData.access_token,
 			);
 		} else {
 			infoLog("Fetching playlist info...");
 
 			const playlistData = await getPlaylistData(
 				user.playlistId,
-				user.accessToken,
-				user.refreshToken,
+				refreshedTokenData.access_token,
 			);
 
 			infoLog("Emptying liked song playlist...");
@@ -740,8 +615,7 @@ async function syncData() {
 			const success = await emptyPlaylist(
 				user.playlistId,
 				likedSongs,
-				user.accessToken,
-				user.refreshToken,
+				refreshedTokenData.access_token,
 			);
 
 			if (!success) {
@@ -749,8 +623,7 @@ async function syncData() {
 
 				await deletePlaylist(
 					user.playlistId,
-					user.accessToken,
-					user.refreshToken,
+					refreshedTokenData.access_token,
 				);
 
 				infoLog("Creating a new liked songs playlist...");
@@ -762,8 +635,7 @@ async function syncData() {
 					playlistData?.description ||
 						config.spotify.defaults.playlistDescription ||
 						"Managed by https://github.com/Stef-00012/Likeify",
-					user.accessToken,
-					user.refreshToken,
+					refreshedTokenData.access_token,
 				);
 			}
 		}
@@ -771,8 +643,7 @@ async function syncData() {
 		const success = await fillPlaylist(
 			user.playlistId,
 			likedSongs,
-			user.accessToken,
-			user.refreshToken,
+			refreshedTokenData.access_token,
 		);
 
 		if (success) infoLog("All songs were added successfully");
