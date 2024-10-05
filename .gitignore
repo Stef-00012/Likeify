@@ -1,3 +1,9 @@
 *.db
 config.js
 node_modules
+/start.sh
+.git
+.gitconfig
+.git-credentials
+.npm
+.cache
