@@ -7,7 +7,7 @@ Likeify is a script that runs every 30 minutes (can be configured) and creates (
 1. `git clone https://github.com/Stef-00012/Likeify` - Clone the repository.
 2. `cd Likeify` - Enter the directory of the repository.
 3. `npm run db:setup` - Setup the database, only for first run.
-4. rename `config.example.js` to `config.js` and fill the config, see [#Config](https://github.com/Stef-00012/Liekify#config).
+4. rename `config.example.js` to `config.js` and fill the config, see [#Config](https://github.com/Stef-00012/Likeify#config).
 5. `npm run start`
 
 then visit `http://localhost:3000/login` (or the domain/port that you use) and login with Spotify.
