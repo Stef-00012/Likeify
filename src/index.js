@@ -662,13 +662,13 @@ async function syncData() {
 }
 
 function errorLog(...args) {
-	console.info(`\x1b[32m[${new Date().toISOString()}] \x1b[31;1mERROR:\x1b[0m`, ...args);
+	console.info(`\x1b[32m[${new Date().toLocaleString()}] \x1b[31;1mERROR:\x1b[0m`, ...args);
 }
 
 function warnLog(...args) {
-	console.info(`\x1b[32m[${new Date().toISOString()}] \x1b[33;1mWARN:\x1b[0m`, ...args);
+	console.info(`\x1b[32m[${new Date().toLocaleString()}] \x1b[33;1mWARN:\x1b[0m`, ...args);
 }
 
 function infoLog(...args) {
-	console.info(`\x1b[32m[${new Date().toISOString()}] \x1b[34;1mINFO:\x1b[0m`, ...args);
+	console.info(`\x1b[32m[${new Date().toLocaleString()}] \x1b[34;1mINFO:\x1b[0m`, ...args);
 }
