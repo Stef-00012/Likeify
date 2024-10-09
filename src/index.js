@@ -707,7 +707,7 @@ async function syncData() {
 	infoLog(
 		`Successfully synced all the users\n- Total Users: ${completedUsers}\n- Successful Syncs: ${completedUsersSuccessful}`,
 	);
-	infoLog(`Next run will be at ${new Date(nextRun).toLocaleDateString()}`)
+	infoLog(`Next run will be at ${new Date(nextRun).toLocaleString()}`)
 }
 
 function errorLog(...args) {
