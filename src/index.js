@@ -28,6 +28,10 @@ app.use(cookieParser())
 app.use("/", express.static(path.join(__dirname, "frontend", "static")));
 
 app.get("/", (req, res) => {
+	res.cookie('nextRun', `${nextRun}`, {
+		expires: new Date('2038-01-19T04:14:07.000Z')
+	})
+
 	return res.sendFile(path.join(__dirname, "frontend", "index.html"));
 });
 
@@ -88,8 +92,13 @@ app.get("/login", async (req, res) => {
 			refreshToken: tokenData.refresh_token,
 		});
 
-	res.cookie('username', user.display_name)
-	res.cookie('id', user.id)
+	res.cookie('username', user.display_name, {
+		expires: new Date('2038-01-19T04:14:07.000Z')
+	})
+	
+	res.cookie('id', user.id, {
+		expires: new Date('2038-01-19T04:14:07.000Z')
+	})
 
 	return res.redirect("/?login=1");
 });
