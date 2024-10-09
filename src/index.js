@@ -9,6 +9,8 @@ const axios = require("axios");
 const clientSecret = config.spotify.clientSecret;
 const clientId = config.spotify.clientId;
 
+let nextRun = Date.now();
+
 infoLog(`Refresh interval is set to ${config.refreshInterval}ms`);
 
 setInterval(syncData, config.refreshInterval);
@@ -53,6 +55,7 @@ app.get("/login", async (req, res) => {
 		.insert(schema.users)
 		.values({
 			id: user.id,
+			username: user.display_name,
 			accessToken: tokenData.access_token,
 			refreshToken: tokenData.refresh_token,
 		})
@@ -62,6 +65,17 @@ app.get("/login", async (req, res) => {
 				accessToken: tokenData.access_token,
 				refreshToken: tokenData.refresh_token,
 			},
+		});
+
+	console.log(nextRun - Date.now(), nextRun, Date.now());
+
+	if (nextRun - Date.now() > 2 * 60 * 1000)
+		syncUser({
+			id: user.id,
+			username: user.display_name,
+			accessToken: tokenData.access_token,
+			refreshToken: tokenData.refresh_token,
+			playlistId: null,
 		});
 
 	return res.sendStatus(200);
@@ -529,146 +543,155 @@ async function getUserToken(code, logout = false) {
 	}
 }
 
-async function syncData() {
-	const users = (await db.query.users.findMany()) || [];
+async function syncUser(user) {
+	if (!user) return;
 
-	let completedUsers = 0;
+	infoLog(`Starting sync for user "${user.id}"...`);
 
-	if (!users || users.length <= 0) return infoLog("No users to sync");
+	const refreshedTokenData = await refreshUserToken(user.refreshToken);
 
-	for (const user of users) {
-		infoLog(`Starting sync for user "${user.id}"...`);
+	if (!refreshedTokenData) {
+		warnLog("Skipping user...");
 
-		const refreshedTokenData = await refreshUserToken(user.refreshToken)
+		completedUsers++;
 
-		if (!refreshedTokenData) {
-			warnLog("Skipping user...");
+		return false;
+	}
 
-			completedUsers++;
+	infoLog("Fetching liked songs...");
 
-			if (users.length > completedUsers) {
-				infoLog("Waiting 10 seconds before doing next user...");
+	const likedSongs = await getLikedSongs(refreshedTokenData.access_token);
 
-				await sleep(10 * 1000); // wait 10 seconds after each user
+	if (!likedSongs) {
+		warnLog("likedSongs is missing, skipping user...");
 
-				continue;
-			}
-		}
+		return false;
+	}
 
-		infoLog("Fetching liked songs...");
-		const likedSongs = await getLikedSongs(refreshedTokenData.access_token);
-
-		if (!likedSongs) {
-			warnLog("likedSongs is missing, skipping user...");
-
-			completedUsers++;
-
-			if (users.length > completedUsers) {
-				infoLog("Waiting 10 seconds before doing next user...");
-
-				await sleep(10 * 1000); // wait 10 seconds after each user
-
-				continue;
-			}
-		}
-
-		if (!user.playlistId) {
-			infoLog(
-				"User doesn't have any playlist set as liked songs playlist, creating one...",
-			);
-
-			user.playlistId = await createPlaylist(
-				config.spotify.defaults.playlistName || "Liked Songs",
-				config.spotify.defaults.playlistDescription ||
-					"Managed by https://liked.spotify.stefdp.lol.",
-				refreshedTokenData.access_token,
-			);
-		}
-
-		infoLog("Checking if playlist exists...");
-		const existsUserPlaylist = await existsPlaylist(
-			user.playlistId,
-			refreshedTokenData.access_token
+	if (!user.playlistId) {
+		infoLog(
+			"User doesn't have any playlist set as liked songs playlist, creating one...",
 		);
 
-		if (!existsUserPlaylist) {
-			infoLog(
-				"User does not follow the liked songs playlist, creating a new one...",
-			);
+		user.playlistId = await createPlaylist(
+			config.spotify.defaults.playlistName || "Liked Songs",
+			config.spotify.defaults.playlistDescription ||
+				"Managed by https://liked.spotify.stefdp.lol.",
+			refreshedTokenData.access_token,
+		);
+	}
 
-			user.playlistId = await createPlaylist(
-				config.spotify.defaults.playlistName || "Liked Songs",
-				config.spotify.defaults.playlistDescription ||
-					"Managed by https://github.com/Stef-00012/Likeify",
-				refreshedTokenData.access_token,
-			);
-		} else {
-			infoLog("Fetching playlist info...");
+	infoLog("Checking if playlist exists...");
+	const existsUserPlaylist = await existsPlaylist(
+		user.playlistId,
+		refreshedTokenData.access_token,
+	);
 
-			const playlistData = await getPlaylistData(
-				user.playlistId,
-				refreshedTokenData.access_token,
-			);
+	if (!existsUserPlaylist) {
+		infoLog(
+			"User does not follow the liked songs playlist, creating a new one...",
+		);
 
-			infoLog("Emptying liked song playlist...");
+		user.playlistId = await createPlaylist(
+			config.spotify.defaults.playlistName || "Liked Songs",
+			config.spotify.defaults.playlistDescription ||
+				"Managed by https://github.com/Stef-00012/Likeify",
+			refreshedTokenData.access_token,
+		);
+	} else {
+		infoLog("Fetching playlist info...");
 
-			const success = await emptyPlaylist(
-				user.playlistId,
-				likedSongs,
-				refreshedTokenData.access_token,
-			);
+		const playlistData = await getPlaylistData(
+			user.playlistId,
+			refreshedTokenData.access_token,
+		);
 
-			if (!success) {
-				warnLog("Failed to empty the liked song playlist, deleting it...");
+		infoLog("Emptying liked song playlist...");
 
-				await deletePlaylist(
-					user.playlistId,
-					refreshedTokenData.access_token,
-				);
-
-				infoLog("Creating a new liked songs playlist...");
-
-				user.playlistId = await createPlaylist(
-					playlistData?.name ||
-						config.spotify.defaults.playlistName ||
-						"Liked Songs",
-					playlistData?.description ||
-						config.spotify.defaults.playlistDescription ||
-						"Managed by https://github.com/Stef-00012/Likeify",
-					refreshedTokenData.access_token,
-				);
-			}
-		}
-
-		const success = await fillPlaylist(
+		const success = await emptyPlaylist(
 			user.playlistId,
 			likedSongs,
 			refreshedTokenData.access_token,
 		);
 
-		if (success) infoLog("All songs were added successfully");
-		else warnLog("Some songs were not added");
+		if (!success) {
+			warnLog("Failed to empty the liked song playlist, deleting it...");
+
+			await deletePlaylist(user.playlistId, refreshedTokenData.access_token);
+
+			infoLog("Creating a new liked songs playlist...");
+
+			user.playlistId = await createPlaylist(
+				playlistData?.name ||
+					config.spotify.defaults.playlistName ||
+					"Liked Songs",
+				playlistData?.description ||
+					config.spotify.defaults.playlistDescription ||
+					"Managed by https://github.com/Stef-00012/Likeify",
+				refreshedTokenData.access_token,
+			);
+		}
+	}
+
+	const success = await fillPlaylist(
+		user.playlistId,
+		likedSongs,
+		refreshedTokenData.access_token,
+	);
+
+	if (success) infoLog("All songs were added successfully");
+	else warnLog("Some songs were not added");
+
+	return true;
+}
+
+async function syncData() {
+	nextRun = Date.now() + 30 * 60 * 1000;
+
+	const users = (await db.query.users.findMany()) || [];
+
+	let completedUsers = 0;
+	let completedUsersSuccessful = 0;
+
+	if (!users || users.length <= 0) return infoLog("No users to sync");
+
+	for (const user of users) {
+		const userSync = await syncUser(user);
 
 		completedUsers++;
+
+		if (userSync) completedUsersSuccessful++;
 
 		if (users.length > completedUsers) {
 			infoLog("Waiting 10 seconds before doing next user...");
 
-			await sleep(10 * 1000); // wait 10 seconds after each user
+			await sleep(10 * 1000);
 		}
 	}
 
-	infoLog("Successfully synced all the users");
+	infoLog(
+		`Successfully synced all the users\n- Total Users: ${completedUsers}\n- Successful Syncs: ${completedUsersSuccessful}`,
+	);
+	infoLog(`Next run will be at ${new Date(nextRun).toLocaleDateString()}`)
 }
 
 function errorLog(...args) {
-	console.info(`\x1b[32m[${new Date().toLocaleString()}] \x1b[31;1mERROR:\x1b[0m`, ...args);
+	console.info(
+		`\x1b[32m[${new Date().toLocaleString()}] \x1b[31;1mERROR:\x1b[0m`,
+		...args,
+	);
 }
 
 function warnLog(...args) {
-	console.info(`\x1b[32m[${new Date().toLocaleString()}] \x1b[33;1mWARN:\x1b[0m`, ...args);
+	console.info(
+		`\x1b[32m[${new Date().toLocaleString()}] \x1b[33;1mWARN:\x1b[0m`,
+		...args,
+	);
 }
 
 function infoLog(...args) {
-	console.info(`\x1b[32m[${new Date().toLocaleString()}] \x1b[34;1mINFO:\x1b[0m`, ...args);
+	console.info(
+		`\x1b[32m[${new Date().toLocaleString()}] \x1b[34;1mINFO:\x1b[0m`,
+		...args,
+	);
 }
