@@ -549,7 +549,7 @@ async function syncUser(user) {
 
 	infoLog(`Starting sync for user "${user.username}" (${user.id})...`);
 
-	if (Date.now() - user.lastRun > 20 * 60 * 1000) {
+	if (user.lastRun && Date.now() - user.lastRun < 20 * 60 * 1000) {
 		infoLog("User's last run was less than 20 minutes ago, skipping...")
 
 		return false;
