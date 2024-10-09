@@ -547,7 +547,13 @@ async function getUserToken(code, logout = false) {
 async function syncUser(user) {
 	if (!user) return;
 
-	infoLog(`Starting sync for user "${user.id}"...`);
+	infoLog(`Starting sync for user "${user.username}" (${user.id})...`);
+
+	if (Date.now() - user.lastRun > 20 * 60 * 1000) {
+		infoLog("User's last run was less than 20 minutes ago, skipping...")
+
+		return false;
+	}
 
 	const refreshedTokenData = await refreshUserToken(user.refreshToken);
 
