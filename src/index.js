@@ -127,13 +127,61 @@ app.listen(config.web?.port || 3000, () => {
 	);
 });
 
+async function ratelimitHandledGet(...data) {
+	try {
+		const res = await axios.get(...data);
+
+		return res;
+	} catch(e) {
+		if (e?.response?.status === 429) {
+			const retryAfter = e.response.headers.get('Retry-After')
+
+			await sleep(Number.parseInt(retryAfter) * 1000)
+
+			return await ratelimitHandledGet(...data)
+		}
+	}
+}
+
+async function ratelimitHandledPost(...data) {
+	try {
+		const res = await axios.post(...data);
+
+		return res;
+	} catch(e) {
+		if (e?.response?.status === 429) {
+			const retryAfter = e.response.headers.get('Retry-After')
+
+			await sleep(Number.parseInt(retryAfter) * 1000)
+
+			return await ratelimitHandledPost(...data)
+		}
+	}
+}
+
+async function ratelimitHandledDelete(...data) {
+	try {
+		const res = await axios.delete(...data);
+
+		return res;
+	} catch(e) {
+		if (e?.response?.status === 429) {
+			const retryAfter = e.response.headers.get('Retry-After')
+
+			await sleep(Number.parseInt(retryAfter) * 1000)
+
+			return await ratelimitHandledDelete(...data)
+		}
+	}
+}
+
 async function createPlaylist(name, description, accessToken) {
 	infoLog("Creating liked songs playlist...");
 
 	const playlistEndpoint = "https://api.spotify.com/v1/me/playlists";
 
 	try {
-		const res = await axios.post(
+		const res = await ratelimitHandledPost(
 			playlistEndpoint,
 			{
 				name,
@@ -185,7 +233,7 @@ async function emptyPlaylist(playlistId, songs, accessToken) {
 		}));
 
 		try {
-			const res = await axios.delete(deletePlaylistSongsEndpoint, {
+			const res = await ratelimitHandledDelete(deletePlaylistSongsEndpoint, {
 				data: {
 					tracks,
 				},
@@ -241,7 +289,7 @@ async function fillPlaylist(playlistId, songs, accessToken) {
 		const tracks = batch.map((trackId) => `spotify:track:${trackId}`);
 
 		try {
-			const res = await axios.post(
+			const res = await ratelimitHandledPost(
 				addPlaylistSongsEndpoint,
 				{
 					uris: tracks,
@@ -288,7 +336,7 @@ async function getPlaylistData(playlistId, accessToken) {
 	const playlistEndpoint = `https://api.spotify.com/v1/playlists/${playlistId}`;
 
 	try {
-		const res = await axios.get(playlistEndpoint, {
+		const res = await ratelimitHandledGet(playlistEndpoint, {
 			headers: {
 				Authorization: `Bearer ${accessToken}`,
 			},
@@ -319,7 +367,7 @@ async function existsPlaylist(playlistId, accessToken) {
 	const playlistFollowEndpoint = `https://api.spotify.com/v1/playlists/${playlistId}/followers/contains`;
 
 	try {
-		const res = await axios.get(playlistFollowEndpoint, {
+		const res = await ratelimitHandledGet(playlistFollowEndpoint, {
 			headers: {
 				Authorization: `Bearer ${accessToken}`,
 			},
@@ -347,7 +395,7 @@ async function deletePlaylist(playlistId, accessToken) {
 	const unfollowPlaylistEndpoint = `https://api.spotify.com/v1/playlists/${playlistId}/followers`;
 
 	try {
-		await axios.delete(unfollowPlaylistEndpoint, {
+		await ratelimitHandledDelete(unfollowPlaylistEndpoint, {
 			headers: {
 				Authorization: `Bearer ${accessToken}`,
 			},
@@ -373,7 +421,7 @@ async function getLikedSongs(accessToken) {
 
 	try {
 		while (nextUrl) {
-			const res = await axios.get(nextUrl, {
+			const res = await ratelimitHandledGet(nextUrl, {
 				headers: {
 					Authorization: `Bearer ${accessToken}`,
 				},
@@ -409,7 +457,7 @@ async function getUser(accessToken, refreshToken) {
 	const userEndpoint = "https://api.spotify.com/v1/me";
 
 	try {
-		const res = await axios.get(userEndpoint, {
+		const res = await ratelimitHandledGet(userEndpoint, {
 			headers: {
 				Authorization: `Bearer ${accessToken}`,
 			},
@@ -452,7 +500,7 @@ async function refreshUserToken(refreshToken) {
 	};
 
 	try {
-		const res = await axios.post(refreshUrl, new URLSearchParams(refreshData), {
+		const res = await ratelimitHandledPost(refreshUrl, new URLSearchParams(refreshData), {
 			headers: {
 				Authorization: `Basic ${auth}`,
 				"Content-Type": "application/x-www-form-urlencoded",
@@ -521,7 +569,7 @@ async function getUserToken(code, logout = false) {
 	const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 
 	try {
-		const res = await axios.post(
+		const res = await ratelimitHandledPost(
 			"https://accounts.spotify.com/api/token",
 			tokenData,
 			{
