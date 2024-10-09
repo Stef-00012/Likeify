@@ -1,0 +1,138 @@
+body {
+	background: #121212;
+}
+
+.title {
+	padding-top: 20px;
+	text-align: center;
+	color: #fff;
+	font-size: 60px;
+}
+
+.description {
+	text-align: center;
+	color: #fff;
+	font-size: 20px;
+}
+
+.login-button {
+	background: #1ed760;
+	color: #fff;
+	text-decoration: none;
+	padding: 13px;
+	padding-right: 20px;
+	font-size: 30px;
+	border-radius: 80px;
+	position: absolute;
+	font-weight: bold;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%);
+	display: flex;
+	align-items: center;
+}
+
+.login-button img {
+	width: 100px;
+	height: auto;
+	margin-right: 10px;
+}
+
+.logout-button {
+    display: none;
+	background: #b41111;
+	color: #fff;
+	text-decoration: none;
+	padding: 10px;
+	font-weight: bold;
+	padding-left: 15px;
+	padding-right: 15px;
+	position: absolute;
+	bottom: 20px;
+	left: 50%;
+	font-size: 15px;
+	transform: translate(-50%);
+	border-radius: 60px;
+}
+
+#userData {
+    display: none;
+    color: #fff;
+    text-align: center;
+	color: #fff;
+	font-size: 20px;
+    position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%);
+}
+
+#nextUpdateText {
+    display: none;
+    position: absolute;
+    text-align: center;
+    width: 100%;
+	bottom: 20px;
+    color: #fff;
+}
+
+#login-0,
+#login-1,
+#login-2,
+#logout-0,
+#logout-1,
+#logout-2 {
+    display: none;
+}
+
+.notification {
+	font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+		Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+	width: 320px;
+	padding: 12px;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: start;
+	border-radius: 8px;
+	box-shadow: 0px 0px 5px -3px #111;
+    position: absolute;
+    top: 15px;
+    left: 15px;
+}
+
+.notification.error {
+    background: #ef665b;
+}
+
+.notification.success {
+    background: #1ed760;
+}
+
+.notification-icon {
+	width: 20px;
+	height: 20px;
+	transform: translateY(-2px);
+	margin-right: 8px;
+}
+
+.notification-icon path {
+	fill: #fff;
+}
+
+.notification-title {
+	font-weight: 500;
+	font-size: 14px;
+	color: #fff;
+}
+
+.notification-close {
+	width: 20px;
+	height: 20px;
+	cursor: pointer;
+	margin-left: auto;
+}
+
+.notification-close path {
+	fill: #fff;
+}

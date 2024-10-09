@@ -5,6 +5,8 @@ const config = require("../config.js");
 const express = require("express");
 const db = require("./db/db.js")();
 const axios = require("axios");
+const path = require("node:path");
+const cookieParser = require('cookie-parser')
 
 const clientSecret = config.spotify.clientSecret;
 const clientId = config.spotify.clientId;
@@ -20,6 +22,14 @@ setInterval(syncData, config.refreshInterval);
 })();
 
 const app = express();
+
+app.use(cookieParser())
+
+app.use("/", express.static(path.join(__dirname, "frontend", "static")));
+
+app.get("/", (req, res) => {
+	return res.sendFile(path.join(__dirname, "frontend", "index.html"));
+});
 
 app.get("/login", async (req, res) => {
 	const code = req.query.code;
@@ -43,11 +53,11 @@ app.get("/login", async (req, res) => {
 
 	const tokenData = await getUserToken(code);
 
-	if (!tokenData) return res.sendStatus(401);
+	if (!tokenData) return res.status(401).redirect("/?login=0");
 
 	const user = await getUser(tokenData.access_token, tokenData.refresh_token);
 
-	if (!user) return res.sendStatus(401);
+	if (!user) return res.status(401).redirect("/?login=0");
 
 	infoLog(`Got a new user "${user.display_name}" (${user.id})`);
 
@@ -68,21 +78,25 @@ app.get("/login", async (req, res) => {
 			},
 		});
 
-	console.log(nextRun - Date.now(), nextRun, Date.now());
-
 	if (nextRun - Date.now() > 2 * 60 * 1000)
 		syncUser({
 			id: user.id,
+			playlistId: null,
+			lastRun: user.lastRun,
 			username: user.display_name,
 			accessToken: tokenData.access_token,
 			refreshToken: tokenData.refresh_token,
-			playlistId: null,
 		});
 
-	return res.sendStatus(200);
+	res.cookie('username', user.display_name)
+	res.cookie('id', user.id)
+
+	return res.redirect("/?login=1");
 });
 
 app.get("/logout", async (req, res) => {
+	if (!req.cookies?.id && !req.cookies?.username) return res.redirect('/?logout=2');
+
 	const code = req.query.code;
 	let state = req.query.state;
 
@@ -99,22 +113,30 @@ app.get("/logout", async (req, res) => {
 
 		const spotifyAuthUrl = `https://accounts.spotify.com/authorize?${urlParams}`;
 
+		res.cookie('username', '', {
+			maxAge: 0
+		})
+
+		res.cookie('id', '', {
+			maxAge: 0
+		})
+
 		return res.redirect(spotifyAuthUrl);
 	}
 
 	const tokenData = await getUserToken(code, true);
 
-	if (!tokenData) return res.sendStatus(404);
+	if (!tokenData) return res.status(404).redirect("/?logout=0");
 
 	const user = await getUser(tokenData.access_token, tokenData.refresh_token);
 
-	if (!user) return res.sendStatus(404);
+	if (!user) return res.status(404).redirect("/?logout=0");
 
 	infoLog(`User logout "${user.display_name}" (${user.id})`);
 
 	await db.delete(schema.users).where(eq(schema.users.id, user.id));
 
-	return res.sendStatus(200);
+	return res.redirect("/?logout=1");
 });
 
 app.all("*", (req, res) => {
@@ -126,54 +148,6 @@ app.listen(config.web?.port || 3000, () => {
 		`Webserver is running on ${config.spotify.baseUrl} (port ${config.web.port})`,
 	);
 });
-
-async function ratelimitHandledGet(...data) {
-	try {
-		const res = await axios.get(...data);
-
-		return res;
-	} catch(e) {
-		if (e?.response?.status === 429) {
-			const retryAfter = e.response.headers.get('Retry-After')
-
-			await sleep(Number.parseInt(retryAfter) * 1000)
-
-			return await ratelimitHandledGet(...data)
-		}
-	}
-}
-
-async function ratelimitHandledPost(...data) {
-	try {
-		const res = await axios.post(...data);
-
-		return res;
-	} catch(e) {
-		if (e?.response?.status === 429) {
-			const retryAfter = e.response.headers.get('Retry-After')
-
-			await sleep(Number.parseInt(retryAfter) * 1000)
-
-			return await ratelimitHandledPost(...data)
-		}
-	}
-}
-
-async function ratelimitHandledDelete(...data) {
-	try {
-		const res = await axios.delete(...data);
-
-		return res;
-	} catch(e) {
-		if (e?.response?.status === 429) {
-			const retryAfter = e.response.headers.get('Retry-After')
-
-			await sleep(Number.parseInt(retryAfter) * 1000)
-
-			return await ratelimitHandledDelete(...data)
-		}
-	}
-}
 
 async function createPlaylist(name, description, accessToken) {
 	infoLog("Creating liked songs playlist...");
@@ -411,41 +385,36 @@ async function deletePlaylist(playlistId, accessToken) {
 	}
 }
 
-async function getLikedSongs(accessToken) {
-	infoLog("Fetching current user liked songs...");
+async function getUserToken(code, logout = false) {
+	infoLog("Fetching user token...");
 
-	const allSongs = [];
-	let count = 0;
+	const tokenData = new URLSearchParams({
+		code,
+		redirect_uri: `${config.spotify.baseUrl}/${logout ? "logout" : "login"}`,
+		grant_type: "authorization_code",
+	});
 
-	let nextUrl = "https://api.spotify.com/v1/me/tracks?limit=50";
+	const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 
 	try {
-		while (nextUrl) {
-			const res = await ratelimitHandledGet(nextUrl, {
+		const res = await ratelimitHandledPost(
+			"https://accounts.spotify.com/api/token",
+			tokenData,
+			{
 				headers: {
-					Authorization: `Bearer ${accessToken}`,
+					Authorization: `Basic ${auth}`,
+					"Content-Type": "application/x-www-form-urlencoded",
 				},
-			});
-
-			const data = res.data;
-
-			const likedSongs = data.items.map((item) => item.track.id);
-			nextUrl = data.next;
-
-			count += likedSongs.length;
-
-			infoLog(`Fetched ${likedSongs.length} new songs, total = ${count}`);
-
-			allSongs.push(...likedSongs);
-		}
-
-		infoLog(
-			`Successfully fetched the current user liked songs, count = ${count}`,
+			},
 		);
 
-		return allSongs;
+		const data = res.data;
+
+		infoLog("Successfully fetched user token", data);
+
+		return data;
 	} catch (e) {
-		errorLog("Something went wrong while fetching current user liked songs...");
+		errorLog("Something went wrong while fetching the user token...");
 
 		errorLog(e?.response?.data || e);
 	}
@@ -487,6 +456,22 @@ async function getUser(accessToken, refreshToken) {
 	}
 }
 
+async function ratelimitHandledDelete(...data) {
+	try {
+		const res = await axios.delete(...data);
+
+		return res;
+	} catch (e) {
+		if (e?.response?.status === 429) {
+			const retryAfter = e.response.headers.get("Retry-After");
+
+			await sleep(Number.parseInt(retryAfter) * 1000);
+
+			return await ratelimitHandledDelete(...data);
+		}
+	}
+}
+
 async function refreshUserToken(refreshToken) {
 	infoLog("Refreshing the current user token...");
 
@@ -500,12 +485,16 @@ async function refreshUserToken(refreshToken) {
 	};
 
 	try {
-		const res = await ratelimitHandledPost(refreshUrl, new URLSearchParams(refreshData), {
-			headers: {
-				Authorization: `Basic ${auth}`,
-				"Content-Type": "application/x-www-form-urlencoded",
+		const res = await ratelimitHandledPost(
+			refreshUrl,
+			new URLSearchParams(refreshData),
+			{
+				headers: {
+					Authorization: `Basic ${auth}`,
+					"Content-Type": "application/x-www-form-urlencoded",
+				},
 			},
-		});
+		);
 
 		const tokenData = res.data;
 
@@ -541,6 +530,78 @@ async function refreshUserToken(refreshToken) {
 	}
 }
 
+async function ratelimitHandledPost(...data) {
+	try {
+		const res = await axios.post(...data);
+
+		return res;
+	} catch (e) {
+		if (e?.response?.status === 429) {
+			const retryAfter = e.response.headers.get("Retry-After");
+
+			await sleep(Number.parseInt(retryAfter) * 1000);
+
+			return await ratelimitHandledPost(...data);
+		}
+	}
+}
+
+async function ratelimitHandledGet(...data) {
+	try {
+		const res = await axios.get(...data);
+
+		return res;
+	} catch (e) {
+		if (e?.response?.status === 429) {
+			const retryAfter = e.response.headers.get("Retry-After");
+
+			await sleep(Number.parseInt(retryAfter) * 1000);
+
+			return await ratelimitHandledGet(...data);
+		}
+	}
+}
+
+async function getLikedSongs(accessToken) {
+	infoLog("Fetching current user liked songs...");
+
+	const allSongs = [];
+	let count = 0;
+
+	let nextUrl = "https://api.spotify.com/v1/me/tracks?limit=50";
+
+	try {
+		while (nextUrl) {
+			const res = await ratelimitHandledGet(nextUrl, {
+				headers: {
+					Authorization: `Bearer ${accessToken}`,
+				},
+			});
+
+			const data = res.data;
+
+			const likedSongs = data.items.map((item) => item.track.id);
+			nextUrl = data.next;
+
+			count += likedSongs.length;
+
+			infoLog(`Fetched ${likedSongs.length} new songs, total = ${count}`);
+
+			allSongs.push(...likedSongs);
+		}
+
+		infoLog(
+			`Successfully fetched the current user liked songs, count = ${count}`,
+		);
+
+		return allSongs;
+	} catch (e) {
+		errorLog("Something went wrong while fetching current user liked songs...");
+
+		errorLog(e?.response?.data || e);
+	}
+}
+
 function generateRandomString(length) {
 	infoLog("Generating the state...");
 
@@ -557,48 +618,13 @@ function generateRandomString(length) {
 	return text;
 }
 
-async function getUserToken(code, logout = false) {
-	infoLog("Fetching user token...");
-
-	const tokenData = new URLSearchParams({
-		code,
-		redirect_uri: `${config.spotify.baseUrl}/${logout ? "logout" : "login"}`,
-		grant_type: "authorization_code",
-	});
-
-	const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
-
-	try {
-		const res = await ratelimitHandledPost(
-			"https://accounts.spotify.com/api/token",
-			tokenData,
-			{
-				headers: {
-					Authorization: `Basic ${auth}`,
-					"Content-Type": "application/x-www-form-urlencoded",
-				},
-			},
-		);
-
-		const data = res.data;
-
-		infoLog("Successfully fetched user token", data);
-
-		return data;
-	} catch (e) {
-		errorLog("Something went wrong while fetching the user token...");
-
-		errorLog(e?.response?.data || e);
-	}
-}
-
 async function syncUser(user) {
 	if (!user) return;
 
 	infoLog(`Starting sync for user "${user.username}" (${user.id})...`);
 
 	if (user.lastRun && Date.now() - user.lastRun < 20 * 60 * 1000) {
-		infoLog("User's last run was less than 20 minutes ago, skipping...")
+		infoLog("User's last run was less than 20 minutes ago, skipping...");
 
 		return false;
 	}
@@ -613,12 +639,10 @@ async function syncUser(user) {
 		await db
 			.update(schema.users)
 			.set({
-				lastRun: Date.now()
+				lastRun: Date.now(),
 			})
-			.where(
-				eq(schema.users.id, user.id)
-			)
-			.catch(() => {})
+			.where(eq(schema.users.id, user.id))
+			.catch(() => {});
 
 		return false;
 	}
@@ -633,11 +657,9 @@ async function syncUser(user) {
 		await db
 			.update(schema.users)
 			.set({
-				lastRun: Date.now()
+				lastRun: Date.now(),
 			})
-			.where(
-				eq(schema.users.id, user.id)
-			)
+			.where(eq(schema.users.id, user.id));
 
 		return false;
 	}
@@ -719,13 +741,32 @@ async function syncUser(user) {
 	await db
 		.update(schema.users)
 		.set({
-			lastRun: Date.now()
+			lastRun: Date.now(),
 		})
-		.where(
-			eq(schema.users.id, user.id)
-		)
+		.where(eq(schema.users.id, user.id));
 
 	return true;
+}
+
+function errorLog(...args) {
+	console.info(
+		`\x1b[32m[${new Date().toLocaleString()}] \x1b[31;1mERROR:\x1b[0m`,
+		...args,
+	);
+}
+
+function warnLog(...args) {
+	console.info(
+		`\x1b[32m[${new Date().toLocaleString()}] \x1b[33;1mWARN:\x1b[0m`,
+		...args,
+	);
+}
+
+function infoLog(...args) {
+	console.info(
+		`\x1b[32m[${new Date().toLocaleString()}] \x1b[34;1mINFO:\x1b[0m`,
+		...args,
+	);
 }
 
 async function syncData() {
@@ -755,26 +796,5 @@ async function syncData() {
 	infoLog(
 		`Successfully synced all the users\n- Total Users: ${completedUsers}\n- Successful Syncs: ${completedUsersSuccessful}`,
 	);
-	infoLog(`Next run will be at ${new Date(nextRun).toLocaleString()}`)
-}
-
-function errorLog(...args) {
-	console.info(
-		`\x1b[32m[${new Date().toLocaleString()}] \x1b[31;1mERROR:\x1b[0m`,
-		...args,
-	);
-}
-
-function warnLog(...args) {
-	console.info(
-		`\x1b[32m[${new Date().toLocaleString()}] \x1b[33;1mWARN:\x1b[0m`,
-		...args,
-	);
-}
-
-function infoLog(...args) {
-	console.info(
-		`\x1b[32m[${new Date().toLocaleString()}] \x1b[34;1mINFO:\x1b[0m`,
-		...args,
-	);
+	infoLog(`Next run will be at ${new Date(nextRun).toLocaleString()}`);
 }
