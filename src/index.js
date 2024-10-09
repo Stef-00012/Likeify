@@ -6,7 +6,7 @@ const express = require("express");
 const db = require("./db/db.js")();
 const axios = require("axios");
 const path = require("node:path");
-const cookieParser = require('cookie-parser')
+const cookieParser = require("cookie-parser");
 
 const clientSecret = config.spotify.clientSecret;
 const clientId = config.spotify.clientId;
@@ -23,14 +23,14 @@ setInterval(syncData, config.refreshInterval);
 
 const app = express();
 
-app.use(cookieParser())
+app.use(cookieParser());
 
 app.use("/", express.static(path.join(__dirname, "frontend", "static")));
 
 app.get("/", (req, res) => {
-	res.cookie('nextUpdate', `${nextRun}`, {
-		expires: new Date('2038-01-19T04:14:07.000Z')
-	})
+	res.cookie("nextUpdate", `${nextRun}`, {
+		expires: new Date("2038-01-19T04:14:07.000Z"),
+	});
 
 	return res.sendFile(path.join(__dirname, "frontend", "index.html"));
 });
@@ -65,6 +65,12 @@ app.get("/login", async (req, res) => {
 
 	infoLog(`Got a new user "${user.display_name}" (${user.id})`);
 
+	console.log(
+		await db.query.users.findFirst({
+			where: eq(schema.users.id, user.id),
+		}),
+	);
+
 	const userData = await db
 		.insert(schema.users)
 		.values({
@@ -72,7 +78,7 @@ app.get("/login", async (req, res) => {
 			username: user.display_name,
 			accessToken: tokenData.access_token,
 			refreshToken: tokenData.refresh_token,
-			enabled: true
+			enabled: true,
 		})
 		.onConflictDoUpdate({
 			target: schema.users.id,
@@ -80,30 +86,30 @@ app.get("/login", async (req, res) => {
 				username: user.display_name,
 				accessToken: tokenData.access_token,
 				refreshToken: tokenData.refresh_token,
-				enabled: true
+				enabled: true,
 			},
 		})
 		.returning({
-			lastRun: schema.users.lastRun
+			lastRun: schema.users.lastRun,
 		});
 
 	if (nextRun - Date.now() > 2 * 60 * 1000)
 		syncUser({
 			id: user.id,
 			playlistId: null,
-			lastRun: userData.lastRun,
+			lastRun: userData[0].lastRun,
 			username: user.display_name,
 			accessToken: tokenData.access_token,
 			refreshToken: tokenData.refresh_token,
 		});
 
-	res.cookie('username', user.display_name, {
-		expires: new Date('2038-01-19T04:14:07.000Z')
-	})
+	res.cookie("username", user.display_name, {
+		expires: new Date("2038-01-19T04:14:07.000Z"),
+	});
 
-	res.cookie('id', user.id, {
-		expires: new Date('2038-01-19T04:14:07.000Z')
-	})
+	res.cookie("id", user.id, {
+		expires: new Date("2038-01-19T04:14:07.000Z"),
+	});
 
 	return res.redirect("/?login=1");
 });
@@ -125,13 +131,13 @@ app.get("/logout", async (req, res) => {
 
 		const spotifyAuthUrl = `https://accounts.spotify.com/authorize?${urlParams}`;
 
-		res.cookie('username', '', {
-			maxAge: 0
-		})
+		res.cookie("username", "", {
+			maxAge: 0,
+		});
 
-		res.cookie('id', '', {
-			maxAge: 0
-		})
+		res.cookie("id", "", {
+			maxAge: 0,
+		});
 
 		return res.redirect(spotifyAuthUrl);
 	}
@@ -146,9 +152,12 @@ app.get("/logout", async (req, res) => {
 
 	infoLog(`User logout "${user.display_name}" (${user.id})`);
 
-	await db.update(schema.users).set({
-		enabled: false,
-	}).where(eq(schema.users.id, user.id));
+	await db
+		.update(schema.users)
+		.set({
+			enabled: false,
+		})
+		.where(eq(schema.users.id, user.id));
 
 	return res.redirect("/?logout=1");
 });
@@ -530,7 +539,7 @@ async function refreshUserToken(refreshToken) {
 			await db
 				.update(schema.users)
 				.set({
-					enabled: false
+					enabled: false,
 				})
 				.where(eq(schema.users.refreshToken, refreshToken));
 
