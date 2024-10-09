@@ -36,8 +36,6 @@ app.get("/", (req, res) => {
 });
 
 app.get("/login", async (req, res) => {
-	if (req.cookies?.username || req.cookies?.id) return res.redirect('/?login=2');
-
 	const code = req.query.code;
 	let state = req.query.state;
 
@@ -74,6 +72,7 @@ app.get("/login", async (req, res) => {
 			username: user.display_name,
 			accessToken: tokenData.access_token,
 			refreshToken: tokenData.refresh_token,
+			enabled: true
 		})
 		.onConflictDoUpdate({
 			target: schema.users.id,
@@ -81,6 +80,7 @@ app.get("/login", async (req, res) => {
 				username: user.display_name,
 				accessToken: tokenData.access_token,
 				refreshToken: tokenData.refresh_token,
+				enabled: true
 			},
 		});
 
@@ -143,7 +143,9 @@ app.get("/logout", async (req, res) => {
 
 	infoLog(`User logout "${user.display_name}" (${user.id})`);
 
-	await db.delete(schema.users).where(eq(schema.users.id, user.id));
+	await db.update(schema.users).set({
+		enabled: false,
+	}).where(eq(schema.users.id, user.id));
 
 	return res.redirect("/?logout=1");
 });
@@ -523,7 +525,10 @@ async function refreshUserToken(refreshToken) {
 			warnLog("User has revoked the token, removing...");
 
 			await db
-				.delete(schema.users)
+				.update(schema.users)
+				.set({
+					enabled: false
+				})
 				.where(eq(schema.users.refreshToken, refreshToken));
 
 			infoLog("Successfully removed the user");
@@ -789,6 +794,8 @@ async function syncData() {
 	if (!users || users.length <= 0) return infoLog("No users to sync");
 
 	for (const user of users) {
+		if (!user.enabled) continue;
+
 		const userSync = await syncUser(user);
 
 		completedUsers++;

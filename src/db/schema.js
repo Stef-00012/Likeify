@@ -10,7 +10,10 @@ const users = sqliteTable("users", {
     accessToken: text("access_token").notNull(),
     refreshToken: text("refresh_token").notNull(),
     playlistId: text("playlist_id"),
-    lastRun: integer("last_run")
+    lastRun: integer("last_run"),
+    enabled: integer("enabled", {
+        mode: "boolean"
+    }).notNull().default(true)
 })
 
 module.exports = {
