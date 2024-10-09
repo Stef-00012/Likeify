@@ -62,6 +62,7 @@ app.get("/login", async (req, res) => {
 		.onConflictDoUpdate({
 			target: schema.users.id,
 			set: {
+				username: user.display_name,
 				accessToken: tokenData.access_token,
 				refreshToken: tokenData.refresh_token,
 			},
