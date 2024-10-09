@@ -9,7 +9,8 @@ const users = sqliteTable("users", {
     username: text("username").notNull(),
     accessToken: text("access_token").notNull(),
     refreshToken: text("refresh_token").notNull(),
-    playlistId: text("playlist_id")
+    playlistId: text("playlist_id"),
+    lastRun: integer("last_run")
 })
 
 module.exports = {

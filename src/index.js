@@ -556,6 +556,16 @@ async function syncUser(user) {
 
 		completedUsers++;
 
+		await db
+			.update(schema.users)
+			.set({
+				lastRun: Date.now()
+			})
+			.where(
+				eq(schema.users.id, user.id)
+			)
+			.catch(() => {})
+
 		return false;
 	}
 
@@ -565,6 +575,15 @@ async function syncUser(user) {
 
 	if (!likedSongs) {
 		warnLog("likedSongs is missing, skipping user...");
+
+		await db
+			.update(schema.users)
+			.set({
+				lastRun: Date.now()
+			})
+			.where(
+				eq(schema.users.id, user.id)
+			)
 
 		return false;
 	}
@@ -642,6 +661,15 @@ async function syncUser(user) {
 
 	if (success) infoLog("All songs were added successfully");
 	else warnLog("Some songs were not added");
+
+	await db
+		.update(schema.users)
+		.set({
+			lastRun: Date.now()
+		})
+		.where(
+			eq(schema.users.id, user.id)
+		)
 
 	return true;
 }
