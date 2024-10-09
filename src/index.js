@@ -65,7 +65,7 @@ app.get("/login", async (req, res) => {
 
 	infoLog(`Got a new user "${user.display_name}" (${user.id})`);
 
-	await db
+	const userData = await db
 		.insert(schema.users)
 		.values({
 			id: user.id,
@@ -82,13 +82,16 @@ app.get("/login", async (req, res) => {
 				refreshToken: tokenData.refresh_token,
 				enabled: true
 			},
+		})
+		.returning({
+			lastRun: schema.users.lastRun
 		});
 
 	if (nextRun - Date.now() > 2 * 60 * 1000)
 		syncUser({
 			id: user.id,
 			playlistId: null,
-			lastRun: user.lastRun,
+			lastRun: userData.lastRun,
 			username: user.display_name,
 			accessToken: tokenData.access_token,
 			refreshToken: tokenData.refresh_token,
