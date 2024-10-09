@@ -28,7 +28,7 @@ app.use(cookieParser())
 app.use("/", express.static(path.join(__dirname, "frontend", "static")));
 
 app.get("/", (req, res) => {
-	res.cookie('nextRun', `${nextRun}`, {
+	res.cookie('nextUpdate', `${nextRun}`, {
 		expires: new Date('2038-01-19T04:14:07.000Z')
 	})
 
@@ -36,6 +36,8 @@ app.get("/", (req, res) => {
 });
 
 app.get("/login", async (req, res) => {
+	if (req.cookies?.username || req.cookies?.id) return res.redirect('/?login=2');
+
 	const code = req.query.code;
 	let state = req.query.state;
 
@@ -95,7 +97,7 @@ app.get("/login", async (req, res) => {
 	res.cookie('username', user.display_name, {
 		expires: new Date('2038-01-19T04:14:07.000Z')
 	})
-	
+
 	res.cookie('id', user.id, {
 		expires: new Date('2038-01-19T04:14:07.000Z')
 	})
@@ -104,8 +106,6 @@ app.get("/login", async (req, res) => {
 });
 
 app.get("/logout", async (req, res) => {
-	if (!req.cookies?.id && !req.cookies?.username) return res.redirect('/?logout=2');
-
 	const code = req.query.code;
 	let state = req.query.state;
 

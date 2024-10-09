@@ -31,7 +31,7 @@ if (username && spotifyId) {
         nextUpdateDateElement.innerText = nextUpdateDate;
         nextUpdateTextElement.style.display = "block";
 
-        logoutButton.style.bottom = '60px'
+        logoutButton.style.bottom = '70px'
     }
 }
 
