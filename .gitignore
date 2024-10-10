@@ -7,3 +7,4 @@ node_modules
 .git-credentials
 .npm
 .cache
+*.tar.gz
