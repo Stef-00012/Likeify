@@ -492,6 +492,8 @@ async function ratelimitHandledDelete(...data) {
 
 			return await ratelimitHandledDelete(...data);
 		}
+
+		throw e
 	}
 }
 
@@ -569,6 +571,8 @@ async function ratelimitHandledPost(...data) {
 
 			return await ratelimitHandledPost(...data);
 		}
+
+		throw e
 	}
 }
 
@@ -585,6 +589,8 @@ async function ratelimitHandledGet(...data) {
 
 			return await ratelimitHandledGet(...data);
 		}
+
+		throw e
 	}
 }
 
@@ -659,8 +665,6 @@ async function syncUser(user) {
 
 	if (!refreshedTokenData) {
 		warnLog("Skipping user...");
-
-		completedUsers++;
 
 		await db
 			.update(schema.users)
