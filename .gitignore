@@ -1,10 +1,5 @@
-*.db
-config.js
+/data
+config.example.js
 node_modules
-/start.sh
 .git
-.gitconfig
-.git-credentials
-.npm
-.cache
-*.tar.gz
+compose.yml

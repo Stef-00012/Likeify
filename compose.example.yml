@@ -1,0 +1,17 @@
+services:
+  server:
+    image: stefdp/likeify
+    ports:
+      - 3000:3000
+    build: .
+    container_name: likeify
+    restart: unless-stopped
+    environment:
+      - SPOTIFY_CLIENT_ID=
+      - SPOTIFY_CLIENT_SECRET=
+      - SPOTIFY_BASE_URL=http://localhost:3000
+      - SPOTIFY_DEFAULT_PLAYLIST_NAME=Liked Songs
+      - SPOTIFY_DEFAULT_PLAYLIST_DESCRIPTION=Managed by https://github.com/Stef-00012/Likeify
+      - REFRESH_INTERVAL=1800000
+    volumes:
+      - ./data:/app/data
