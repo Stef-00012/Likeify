@@ -1,5 +1,5 @@
 services:
-  server:
+  likeify:
     image: stefdp/likeify
     ports:
       - 3000:3000
