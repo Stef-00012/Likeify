@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <title>Likeify</title>
+
+        <meta name="og:title" content="Likeify">
+        <meta name="og:url" content="https://liked.spotify.stefdp.lol">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="og:description" content="Sync your Spotify liked songs in a playlist to have them public!
+                    The playlist is updated on first login and then every 30 minutes">
+
+        <link rel="stylesheet" href="/styles/home.css">
+    </head>
+    <body>
         <div class="notifications">
             <div class="logout">
                 <div class="notification error" id="logout-0">
@@ -55,12 +66,6 @@
             </div>
         </div>
 
-        <title>Likeify</title>
-
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="/style.css">
-    </head>
-    <body>
         <h1 class="title">Likeify</h1>
         <p class="description">Sync your Spotify liked songs in a playlist to have them public!<br />The playlist is updated on first login and then every 30 minutes</p>
 
@@ -76,8 +81,8 @@
 
         <a href="/logout" class="logout-button">Logout</a>
 
-        <p id="nextUpdateText"><b>Next Update</b>: <span id="nextUpdate"></span></p>
+        <p id="nextUpdateText"><b>Next Update</b>: <span id="nextUpdate"></span> | <a href="/privacy">Privacy Policy</a></p>
 
-        <script src="/script.js"></script>
+        <script src="/scripts/home.js"></script>
     </body>
 </html>

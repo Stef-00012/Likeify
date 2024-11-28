@@ -11,14 +11,16 @@ const cookieParser = require("cookie-parser");
 const clientSecret = config.spotify.clientSecret;
 const clientId = config.spotify.clientId;
 
+const dryRun = process.argv.includes('--dry')
+
 let nextRun = Date.now();
 
 infoLog(`Refresh interval is set to ${config.refreshInterval}ms`);
 
-setInterval(syncData, config.refreshInterval);
+if (!dryRun) setInterval(syncData, config.refreshInterval);
 
 (async () => {
-	await syncData();
+	if (!dryRun) await syncData();
 })();
 
 const app = express();
@@ -32,8 +34,12 @@ app.get("/", (req, res) => {
 		expires: new Date("2038-01-19T04:14:07.000Z"),
 	});
 
-	return res.sendFile(path.join(__dirname, "frontend", "index.html"));
+	return res.sendFile(path.join(__dirname, "frontend", "home", "index.html"));
 });
+
+app.get('/privacy', (req, res) => {
+	return res.sendFile(path.join(__dirname, "frontend", "privacy", "index.html"))
+})
 
 app.get("/login", async (req, res) => {
 	const code = req.query.code;
@@ -93,7 +99,7 @@ app.get("/login", async (req, res) => {
 			lastRun: schema.users.lastRun,
 		});
 
-	if (nextRun - Date.now() > 2 * 60 * 1000)
+	if (!dryRun && nextRun - Date.now() > 2 * 60 * 1000)
 		syncUser({
 			id: user.id,
 			playlistId: null,
