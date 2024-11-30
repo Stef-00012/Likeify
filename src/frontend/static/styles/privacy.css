@@ -22,22 +22,24 @@ p {
     font-size: 20px;
 }
 
-.policy-container {
-    width: 50%;
-    text-align: center;
-    background-color: #0b5d28;
-    margin: auto;
-    padding: 10px;
-    border-radius: 25px;
-    margin-top: 30px;
-}
-
-ul li {
-    text-align: left;
-    font-size: 20px;
-}
-
-.list {
-    display: flex;
-    justify-content: center;
+@media screen and (min-width: 720px) {
+    .policy-container {
+        width: 50%;
+        text-align: center;
+        background-color: #0b5d28;
+        margin: auto;
+        padding: 10px;
+        border-radius: 25px;
+        margin-top: 30px;
+    }
+    
+    ul li {
+        text-align: left;
+        font-size: 20px;
+    }
+    
+    .list {
+        display: flex;
+        justify-content: center;
+    }
 }

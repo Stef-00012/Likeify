@@ -708,7 +708,7 @@ async function syncUser(user) {
 		user.playlistId = await createPlaylist(
 			config.spotify.defaults.playlistName || "Liked Songs",
 			config.spotify.defaults.playlistDescription ||
-				"Managed by https://liked.spotify.stefdp.lol.",
+				"Managed by https://likeify.stefdp.lol.",
 			refreshedTokenData.access_token,
 		);
 	}
