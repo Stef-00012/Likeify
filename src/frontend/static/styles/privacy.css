@@ -31,6 +31,25 @@ ul li {
     font-size: var(--font-size);
 }
 
+.home-button {
+    display: block;
+    background-color: #1ed760;
+    padding: 10px;
+    margin: auto;
+    width: 40%;
+    text-align: center;
+    border-radius: 25px;
+    margin-top: 30px;
+    color: #fff;
+    text-decoration: none;
+    font-weight: bold;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.home-button:hover  {
+    background-color: #0b5d28;
+}
+
 @media screen and (min-width: 720px) {
     .policy-container {
         width: 50%;
@@ -45,5 +64,9 @@ ul li {
     .list {
         display: flex;
         justify-content: center;
+    }
+
+    .home-button {
+        width: 50%;
     }
 }
