@@ -88,6 +88,10 @@ a:hover {
     background-color: rgba(6, 78, 59, 0.6);
 }
 
+.button-container {
+    padding: 0rem;
+}
+
 @media (min-width: 768px) {
     h1 {
         font-size: 3rem;
