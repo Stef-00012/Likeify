@@ -29,7 +29,7 @@ if (username && spotifyId) {
         ).toLocaleString();
     
         nextUpdateDateElement.innerText = nextUpdateDate;
-        nextUpdateTextElement.style.display = "block";
+        nextUpdateTextElement.style.display = "inline-block";
 
         logoutButton.style.bottom = '90px'
     }

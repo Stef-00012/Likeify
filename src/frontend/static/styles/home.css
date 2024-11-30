@@ -69,7 +69,11 @@ body {
 }
 
 #nextUpdateText {
-    display: none;
+	display: none;
+}
+
+.footer {
+    /* display: none; */
     position: absolute;
     text-align: center;
     width: 100%;
@@ -147,9 +151,5 @@ code {
 	background-color: #1ed760;
 	border-radius: 5px;
 	color: #000;
-	font-weight: bold;
-}
-
-.footer {
 	font-weight: bold;
 }
