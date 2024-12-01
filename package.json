@@ -2,7 +2,8 @@
     "scripts": {
         "db:generate": "drizzle-kit generate",
         "db:migrate": "drizzle-kit migrate",
-        "db:setup": "[ -f data/data.db ] && (cp data/data.db \"data/data.old-$(date +%Y-%m-%dT%H:%M:%S.%3N).db\" && npm run db:generate && npm run db:migrate) || (npm run db:generate && npm run db:migrate)",
+        "db:backup": "[ -f data/data.db ] && (cp data/data.db \"data/data.old-$(date +%Y-%m-%dT%H:%M:%S.%3N).db\"",
+        "db:setup": "npm run db:generate && npm run db:migrate",
         "build": "npm run db:setup && npm run start",
         "start": "node src/index.js",
         "start:dry": "node src/index.js --dry"
