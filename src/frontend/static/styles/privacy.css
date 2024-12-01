@@ -9,26 +9,22 @@ body {
     align-items: center;
     min-height: 100vh;
 }
-
 .container {
     max-width: 64rem;
     width: 100%;
     padding: 1rem;
 }
-
 h1 {
     font-size: 2.25rem;
     font-weight: bold;
     text-align: center;
     margin-bottom: 2rem;
 }
-
 .divider {
     height: 1px;
     background: linear-gradient(to right, transparent, #10b981, transparent);
     margin-bottom: 2rem;
 }
-
 .card {
     background-color: rgba(6, 78, 59, 0.4);
     border: 1px solid #10b981;
@@ -36,41 +32,39 @@ h1 {
     padding: 1.5rem;
     margin-bottom: 2rem;
 }
-
 .card-title {
     font-size: 1.25rem;
     font-weight: bold;
     text-align: center;
     margin-bottom: 1.5rem;
 }
-
 ul {
     list-style-type: disc;
     padding-left: 2rem;
     margin-bottom: 1.5rem;
 }
-
 li, p {
     margin-bottom: 0.5rem;
 }
-
 .text-center {
     text-align: center;
 }
-
 a {
     color: #34d399;
     text-decoration: none;
 }
-
 a:hover {
     color: #6ee7b7;
+}
+.button-container {
+    display: flex;
+    justify-content: center;
 }
 
 .button {
     display: block;
-    width: 100%;
-    margin: 0 auto;
+    width: 100%; /* Matches the card's width */
+    max-width: 20rem; /* Optional: Limit button width if needed */
     padding: 0.75rem 1rem;
     background-color: rgba(6, 78, 59, 0.4);
     color: white;
@@ -86,11 +80,6 @@ a:hover {
 .button:hover {
     background-color: rgba(6, 78, 59, 0.6);
 }
-
-.button-container {
-    padding: 0rem;
-}
-
 @media (min-width: 768px) {
     h1 {
         font-size: 3rem;
