@@ -12,7 +12,7 @@
         "axios": "^1.7.7",
         "better-sqlite3": "^11.3.0",
         "cookie-parser": "^1.4.7",
-        "drizzle-orm": "^0.33.0",
+        "drizzle-orm": "^0.45.2",
         "express": "^4.21.0"
     },
     "devDependencies": {
